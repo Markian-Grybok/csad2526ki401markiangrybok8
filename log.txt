@@ -1,0 +1,16 @@
+- Я: Напиши мені мінімальну програму "Hello World"(main.cpp).
+- Copilot:
+  #include <iostream>
+  int main() {
+      std::cout << "Hello World" << std::endl;
+      return 0;
+  }
+
+- Я: Тепер  згенеруй наповнення до файлу CMakeLists.txt.
+- Copilot:
+  cmake_minimum_required(VERSION 3.10)
+  project(HelloWorld)
+  
+  set(CMAKE_CXX_STANDARD 11)
+  
+  add_executable(HelloWorld main.cpp)
