@@ -1,16 +1,8 @@
-- Я: Напиши мені мінімальну програму "Hello World"(main.cpp).
-- Copilot:
-  #include <iostream>
-  int main() {
-      std::cout << "Hello World" << std::endl;
-      return 0;
-  }
+- Напиши мені мінімальну програму "Hello World"(main.cpp).
 
-- Я: Тепер  згенеруй наповнення до файлу CMakeLists.txt.
-- Copilot:
-  cmake_minimum_required(VERSION 3.10)
-  project(HelloWorld)
-  
-  set(CMAKE_CXX_STANDARD 11)
-  
-  add_executable(HelloWorld main.cpp)
+- Тепер  згенеруй наповнення до файлу CMakeLists.txt.
+
+- У math_operations.h створи функцію int add(int a, int b);
+- Реалізуй функцію в math_operations.cpp.
+- Напиши юніт тести unit_tests.cpp.
+- Додай підтримку Google Test у CMakeLists.txt і додай інструкції для створення тестового виконуваного файлу та запуску тестів.
