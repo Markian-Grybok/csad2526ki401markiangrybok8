@@ -17,3 +17,12 @@
   зміни.
   6 Створіть крок, який запускає тести за допомогою CTest (частина CMake),
   і переконайтеся, що він виконується на всіх трьох ОС:
+
+- Напиши мені файл ci.yml  для
+  генерації робочого процесу (workflow) з наступними вимогами:
+  Trigger: Запускати акцію при push або pull request у гілку, що містить в
+  назві develop чи master .
+  Job: Створити одну Job (наприклад, cross_build).
+  Strategy: Використати матрицю (strategy: matrix) для запуску білду
+  на трьох ОС:runs-on: ubuntu-latest (Linux), runs-on: windows-latest (Windows), runs-on: macos-latest (macOS)
+  Steps: Кожен білд повинен включати кроки: Checkout коду (actions/checkout@v4), Встановлення CMake (якщо потрібно),
