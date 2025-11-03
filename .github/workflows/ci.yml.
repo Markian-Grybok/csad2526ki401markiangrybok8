@@ -1,1 +1,86 @@
+name: Cross-Platform CI
 
+on:
+  push:
+    branches:
+      - '*develop*'
+      - '*master*'
+  pull_request:
+    branches:
+      - '*develop*'
+      - '*master*'
+
+jobs:
+  cross_build:
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install CMake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.20.x'
+      
+      - name: Install Google Test (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          git clone https://github.com/google/googletest.git
+          cd googletest
+          mkdir build
+          cd build
+          cmake ..
+          make
+          sudo make install
+      
+      - name: Install Google Test (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          git clone https://github.com/google/googletest.git
+          cd googletest
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build . --config Release
+          cmake --install . --config Release
+        shell: cmd
+      
+      - name: Configure and Build (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          chmod +x build.sh
+          ./build.sh
+      
+      - name: Configure and Build (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          call ci.bat
+        shell: cmd
+      
+      - name: Run Unit Tests
+        run: |
+          cd tests
+          ./unit_tests
+        if: runner.os != 'Windows'
+      
+      - name: Run Unit Tests (Windows)
+        run: |
+          cd tests
+          unit_tests.exe
+        if: runner.os == 'Windows'
+        shell: cmd
+      
+      - name: Deploy artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.os }}
+          path: |
+            build/
+            tests/unit_tests
+            tests/unit_tests.exe
+          if-no-files-found: warn
