@@ -65,7 +65,7 @@ jobs:
       - name: Run Unit Tests
         run: |
           cd tests
-          ./unit_tests
+          unit_tests
         if: runner.os != 'Windows'
       
       - name: Run Unit Tests (Windows)
