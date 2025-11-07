@@ -50,28 +50,25 @@ jobs:
           cmake --install . --config Release
         shell: cmd
       
-      - name: Configure and Build (Linux/macOS)
-        if: runner.os != 'Windows'
-        run: |
-          chmod +x build.sh
-          ./build.sh
+      - name: Create build directory
+        run: mkdir build
       
-      - name: Configure and Build (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          call ci.bat
-        shell: cmd
+      - name: Configure with CMake
+        run: cmake -B build -S .
+      
+      - name: Build project
+        run: cmake --build build --config Release
       
       - name: Run Unit Tests
         run: |
-          cd tests
-          unit_tests
+          cd build
+          ./unit_tests
         if: runner.os != 'Windows'
       
       - name: Run Unit Tests (Windows)
         run: |
-          cd tests
-          unit_tests.exe
+          cd build
+          .\unit_tests.exe
         if: runner.os == 'Windows'
         shell: cmd
       
@@ -81,6 +78,4 @@ jobs:
           name: build-${{ matrix.os }}
           path: |
             build/
-            tests/unit_tests
-            tests/unit_tests.exe
           if-no-files-found: warn
