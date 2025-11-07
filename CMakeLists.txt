@@ -1,54 +1,36 @@
-cmake_minimum_required(VERSION 3.14)
-project(HelloWorld LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 11)
+cmake_minimum_required(VERSION 3.10)
+
+project(hello_world LANGUAGES CXX)
+
+# Use C++17 standard
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Main executable
-add_executable(HelloWorld main.cpp)
+# Create executable from main.cpp
+add_executable(hello main.cpp)
 
-# Option to enable/disable building tests
-option(BUILD_TESTS "Build unit tests" ON)
+# Simple install support
+install(TARGETS hello DESTINATION bin)
 
-if(BUILD_TESTS)
-    enable_testing()
-    include(FetchContent)
+# Enable testing
+include(CTest)
+enable_testing()
 
-    # Fetch GoogleTest
-    FetchContent_Declare(
-        googletest
-        URL https://github.com/google/googletest/archive/refs/heads/main.zip
-    )
+# --- GoogleTest setup via FetchContent ---
+include(FetchContent)
+FetchContent_Declare(
+	googletest
+	URL https://github.com/google/googletest/archive/v1.14.0.zip
+)
+# For Windows: prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
 
-    # Prevent GoogleTest from overriding our compiler options
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(googletest)
+# Unit tests target
+add_executable(unit_tests tests/unit_tests.cpp)
+target_include_directories(unit_tests PRIVATE ${CMAKE_SOURCE_DIR})
+target_link_libraries(unit_tests PRIVATE gtest_main)
 
-    # Simple test target using the existing unit_tests.cpp in tests/ folder
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/unit_tests.cpp")
-        add_executable(unit_tests
-            tests/unit_tests.cpp
-            math_operations.cpp
-        )
-        target_include_directories(unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-        add_test(NAME BasicAddition COMMAND unit_tests)
-
-        # Copy unit_tests to tests folder after build for easier running
-        add_custom_command(TARGET unit_tests POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/tests/build
-            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:unit_tests> ${CMAKE_CURRENT_SOURCE_DIR}/tests/build/
-        )
-    endif()
-
-    # If you create a GoogleTest-based test file named gtest_math_tests.cpp, this target will be built and run.
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/gtest_math_tests.cpp")
-        add_executable(gtest_math_tests
-            gtest_math_tests.cpp
-            math_operations.cpp
-        )
-        target_include_directories(gtest_math_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-        target_link_libraries(gtest_math_tests PRIVATE GTest::gtest_main)
-        include(GoogleTest)
-        gtest_discover_tests(gtest_math_tests)
-    endif()
-endif()
+include(GoogleTest)
+gtest_discover_tests(unit_tests)

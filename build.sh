@@ -1,22 +1,22 @@
-#!/usr/bin/env bash
+#!/bin/bash
+
+# To make this script executable, run:
+#   chmod +x ci.sh
+
+# Exit immediately if any command fails
 set -e
 
-echo "[BUILD] Starting build process..."
-
-# Create build directory
+# Create build directory if it doesn't exist
 mkdir -p build
+
+# Change into build directory
 cd build
 
-echo "[BUILD] Configuring project with CMake..."
+# Run CMake configuration
 cmake ..
 
-echo "[BUILD] Building project..."
+# Build the project
 cmake --build .
 
-echo "[BUILD] Build completed. Contents of build directory:"
-ls -la
-
-echo "[BUILD] Running tests with CTest..."
-ctest --output-on-failure --verbose
-
-echo "[BUILD] Build and test process completed successfully!"
+# Run tests
+ctest --output-on-failure
