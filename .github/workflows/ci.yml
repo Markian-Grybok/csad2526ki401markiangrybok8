@@ -14,17 +14,10 @@ jobs:
   cross-platform-build:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-
+    
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        include:
-          - os: windows-latest
-            build_config: Release
-          - os: ubuntu-latest
-            build_config: Release
-          - os: macos-latest
-            build_config: Release
 
     steps:
       - name: 📥 Checkout repository
@@ -37,27 +30,20 @@ jobs:
 
       - name: 🏗️ Configure project
         run: |
-          cmake -S . -B build \
-            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
 
       - name: 🚀 Build project
         run: |
-          cmake --build build \
-            --config ${{ matrix.build_config }} \
-            --parallel 2
+          cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 2
 
       - name: ✅ Execute test suite
         run: |
           cd build
-          ctest \
-            --build-config ${{ matrix.build_config }} \
-            --output-on-failure \
-            --verbose
+          ctest --build-config ${{ env.BUILD_TYPE }} --output-on-failure --verbose
 
       - name: 📦 Package artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.os }}-${{ github.sha }}
-          path: |
-            build/
+          path: build/
           retention-days: 7
