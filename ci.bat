@@ -18,11 +18,15 @@ pushd build || (echo [CI] Failed to enter build directory & exit /b 1)
 
 rem 3) Configure project with CMake using Visual Studio generator
 echo [CI] Configuring project with CMake...
-cmake -G "Visual Studio 17 2022" -A x64 .. || (
-    echo [CI] Trying alternative generator...
-    cmake -G "Visual Studio 16 2019" -A x64 .. || (
-        echo [CI] Trying MinGW Makefiles...
-        cmake -G "MinGW Makefiles" .. || (
+rem Clean build directory if it has CMakeCache from previous failed attempt
+if exist CMakeCache.txt del CMakeCache.txt
+if exist CMakeFiles rmdir /s /q CMakeFiles
+
+cmake -G "Visual Studio 16 2019" -A x64 .. || (
+    echo [CI] Visual Studio 16 2019 not found, trying Visual Studio 15 2017...
+    cmake -G "Visual Studio 15 2017" -A x64 .. || (
+        echo [CI] Trying Ninja generator...
+        cmake -G "Ninja" .. || (
             echo [CI] CMake configuration failed with all generators
             popd
             exit /b 1

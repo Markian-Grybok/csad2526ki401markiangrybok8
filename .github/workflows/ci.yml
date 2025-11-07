@@ -42,7 +42,12 @@ jobs:
 
       - name: Configure and Build (Windows)
         if: runner.os == 'Windows'
-        run: ci.bat
+        run: |
+          if exist build rmdir /s /q build
+          mkdir build
+          cd build
+          cmake -G "Visual Studio 16 2019" -A x64 ..
+          cmake --build . --config Release
         shell: cmd
 
       - name: List build artifacts (Debug)
