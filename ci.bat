@@ -1,30 +1,63 @@
 @echo off
+setlocal enabledelayedexpansion
 
-:: Create a build directory if it doesn't exist
-if not exist build mkdir build
+:: Інформація про збірку
+echo [BUILD] Starting CI build process
+echo [TIME] %date% %time%
 
-:: Navigate to the build directory
-cd build
+:: Конфігурація
+set "BUILD_DIR=build"
+set "CONFIG=Release"
 
-:: Configure the project with CMake
-cmake ..
-if errorlevel 1 goto :error
+:: Перевірка CMake
+cmake --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [ERROR] CMake is not installed or not in PATH
+    exit /b 1
+)
 
-:: Build the project
-cmake --build .
-if errorlevel 1 goto :error
+:: Очищення попередньої збірки
+if exist "%BUILD_DIR%" (
+    echo [CLEAN] Removing old build directory
+    rmdir /s /q "%BUILD_DIR%"
+)
 
-:: Run tests with CTest, specifying Debug configuration
-ctest -C Debug --output-on-failure
-if errorlevel 1 goto :error
+:: Створення директорії збірки
+mkdir "%BUILD_DIR%"
+cd "%BUILD_DIR%"
 
-:: Exit successfully
-echo Build and tests completed successfully.
-goto :end
+:: Конфігурація проекту
+echo [CONFIG] Configuring project...
+cmake .. -DCMAKE_BUILD_TYPE=%CONFIG%
+if !errorlevel! neq 0 goto :error
+
+:: Збірка проекту
+echo [BUILD] Building project...
+cmake --build . --config %CONFIG% --parallel 2
+if !errorlevel! neq 0 goto :error
+
+:: Запуск тестів
+echo [TEST] Running tests...
+ctest -C %CONFIG% --output-on-failure
+set TEST_EXITCODE=!errorlevel!
+
+:: Звіт про результати
+echo.
+if !TEST_EXITCODE! equ 0 (
+    echo ✅ BUILD SUCCESSFUL
+    echo 📍 Build directory: %CD%
+) else (
+    echo ❌ SOME TESTS FAILED
+)
+
+:: Копіювання артефактів
+if not exist "..\artifacts" mkdir "..\artifacts"
+xcopy /Y /I "*.exe" "..\artifacts\" >nul 2>&1
+
+echo [INFO] Build process completed
+endlocal
+exit /b %TEST_EXITCODE%
 
 :error
-echo An error occurred during the build or test process.
+echo [ERROR] Build process failed at step: %ERRORSTEP%
 exit /b 1
-
-:end
-exit /b 0

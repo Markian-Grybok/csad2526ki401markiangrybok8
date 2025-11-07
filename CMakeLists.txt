@@ -1,48 +1,56 @@
-cmake_minimum_required(VERSION 3.14)
-project(main VERSION 0.1 LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.16)
+project(MathProject VERSION 1.0.0 LANGUAGES CXX)
 
-# Встановлюємо стандарт C++
+# Основні налаштування
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Встановлюємо динамічну бібліотеку дебаґу (/MDd) для MSVC
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDebugDLL")
+# Специфічні налаштування для Windows
+if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    add_compile_options(/W3)
+else()
+    add_compile_options(-Wall -Wextra)
+endif()
 
-# Основний виконуваний файл
-add_executable(main main.cpp)
-target_link_libraries(main PRIVATE math_operations)
-
-# Додаємо підтримку тестів
+# Підтримка тестування
 include(CTest)
 enable_testing()
 
-# Уникаємо pthread на Windows
-if(NOT WIN32)
-    find_package(Threads REQUIRED)
-    target_link_libraries(main PRIVATE Threads::Threads)
-endif()
-
-# Автоматично завантажуємо і конфігуруємо Google Test
+# Завантаження Google Test
 include(FetchContent)
 FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG v1.14.0
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG v1.13.0  # Інша версія
 )
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE) # Використовуємо /MDd
+
 FetchContent_MakeAvailable(googletest)
 
-# Додаємо шляхи до заголовків
-include_directories(${CMAKE_SOURCE_DIR})
+# Основна бібліотека
+add_library(math_operations
+    math_operations.cpp
+    math_operations.h
+)
 
-# Створюємо бібліотеку з математичними операціями
-add_library(math_operations math_operations.cpp)
+# Головний виконуваний файл
+add_executable(main_app main.cpp)
+target_link_libraries(main_app PRIVATE math_operations)
 
-# Створюємо виконуваний файл для тестів
+# Тестовий виконуваний файл
 add_executable(unit_tests tests/unit_tests.cpp)
 target_link_libraries(unit_tests PRIVATE math_operations gtest gtest_main)
-if(NOT WIN32)
-    target_link_libraries(unit_tests PRIVATE Threads::Threads)
-endif()
-add_test(NAME unit_tests COMMAND unit_tests)
+
+# Реєстрація тестів
+add_test(
+    NAME MathUnitTests
+    COMMAND unit_tests
+)
+
+# Додаткова ціль для швидкого запуску
+add_custom_target(run-all
+    COMMAND unit_tests
+    DEPENDS unit_tests
+    COMMENT "Building and running all tests"
+)
