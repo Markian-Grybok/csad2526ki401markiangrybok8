@@ -1,54 +1,48 @@
 cmake_minimum_required(VERSION 3.14)
-project(HelloWorld LANGUAGES CXX)
+project(main VERSION 0.1 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 11)
+# Встановлюємо стандарт C++
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Main executable
-add_executable(HelloWorld main.cpp)
+# Встановлюємо динамічну бібліотеку дебаґу (/MDd) для MSVC
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDebugDLL")
 
-# Option to enable/disable building tests
-option(BUILD_TESTS "Build unit tests" ON)
+# Основний виконуваний файл
+add_executable(main main.cpp)
+target_link_libraries(main PRIVATE math_operations)
 
-if(BUILD_TESTS)
-    enable_testing()
-    include(FetchContent)
+# Додаємо підтримку тестів
+include(CTest)
+enable_testing()
 
-    # Fetch GoogleTest
-    FetchContent_Declare(
-        googletest
-        URL https://github.com/google/googletest/archive/refs/heads/main.zip
-    )
-
-    # Prevent GoogleTest from overriding our compiler options
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(googletest)
-
-    # Simple test target using the existing unit_tests.cpp in tests/ folder
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/unit_tests.cpp")
-        add_executable(unit_tests
-            tests/unit_tests.cpp
-            math_operations.cpp
-        )
-        target_include_directories(unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-        add_test(NAME BasicAddition COMMAND unit_tests)
-
-        # Copy unit_tests to tests folder after build for easier running
-        add_custom_command(TARGET unit_tests POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/tests/build
-            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:unit_tests> ${CMAKE_CURRENT_SOURCE_DIR}/tests/build/
-        )
-    endif()
-
-    # If you create a GoogleTest-based test file named gtest_math_tests.cpp, this target will be built and run.
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/gtest_math_tests.cpp")
-        add_executable(gtest_math_tests
-            gtest_math_tests.cpp
-            math_operations.cpp
-        )
-        target_include_directories(gtest_math_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-        target_link_libraries(gtest_math_tests PRIVATE GTest::gtest_main)
-        include(GoogleTest)
-        gtest_discover_tests(gtest_math_tests)
-    endif()
+# Уникаємо pthread на Windows
+if(NOT WIN32)
+    find_package(Threads REQUIRED)
+    target_link_libraries(main PRIVATE Threads::Threads)
 endif()
+
+# Автоматично завантажуємо і конфігуруємо Google Test
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG v1.14.0
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE) # Використовуємо /MDd
+FetchContent_MakeAvailable(googletest)
+
+# Додаємо шляхи до заголовків
+include_directories(${CMAKE_SOURCE_DIR})
+
+# Створюємо бібліотеку з математичними операціями
+add_library(math_operations math_operations.cpp)
+
+# Створюємо виконуваний файл для тестів
+add_executable(unit_tests tests/unit_tests.cpp)
+target_link_libraries(unit_tests PRIVATE math_operations gtest gtest_main)
+if(NOT WIN32)
+    target_link_libraries(unit_tests PRIVATE Threads::Threads)
+endif()
+add_test(NAME unit_tests COMMAND unit_tests)
