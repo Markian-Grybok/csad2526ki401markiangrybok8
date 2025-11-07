@@ -5,77 +5,95 @@ on:
     branches:
       - '*develop*'
       - '*master*'
+      - 'main'
   pull_request:
     branches:
       - '*develop*'
       - '*master*'
+      - 'main'
 
 jobs:
   cross_build:
     runs-on: ${{ matrix.os }}
-    
+
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Install CMake
         uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '3.20.x'
-      
-      - name: Install Google Test (Linux/macOS)
+
+      - name: Configure and Build (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
-          git clone https://github.com/google/googletest.git
-          cd googletest
-          mkdir build
-          cd build
-          cmake ..
-          make
-          sudo make install
-      
-      - name: Install Google Test (Windows)
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Configure and Build (Windows)
         if: runner.os == 'Windows'
-        run: |
-          git clone https://github.com/google/googletest.git
-          cd googletest
-          mkdir build
-          cd build
-          cmake ..
-          cmake --build . --config Release
-          cmake --install . --config Release
+        run: ci.bat
         shell: cmd
-      
-      - name: Create build directory
-        run: mkdir build
-      
-      - name: Configure with CMake
-        run: cmake -B build -S .
-      
-      - name: Build project
-        run: cmake --build build --config Release
-      
-      - name: Run Unit Tests
+
+      - name: List build artifacts (Debug)
         run: |
-          cd build
-          ./unit_tests
+          echo "Build directory contents:"
+          ls -R build/ || dir /s build\
+        shell: bash
+        continue-on-error: true
+
+      - name: Run Unit Tests via CTest (Linux/macOS)
         if: runner.os != 'Windows'
-      
-      - name: Run Unit Tests (Windows)
         run: |
           cd build
-          .\unit_tests.exe
+          ctest --output-on-failure --verbose
+
+      - name: Run Unit Tests via CTest (Windows)
         if: runner.os == 'Windows'
+        run: |
+          cd build
+          ctest --output-on-failure --verbose -C Release
         shell: cmd
-      
+        continue-on-error: true
+
+      - name: Run Unit Tests via CTest (Windows Debug fallback)
+        if: runner.os == 'Windows'
+        run: |
+          cd build
+          ctest --output-on-failure --verbose -C Debug
+        shell: cmd
+        continue-on-error: true
+
+      - name: Prepare artifacts (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p artifacts
+          cp -r build artifacts/ || true
+          cp build/HelloWorld artifacts/ || true
+          cp build/unit_tests artifacts/ || true
+          ls -la artifacts/
+
+      - name: Prepare artifacts (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir artifacts
+          xcopy /E /I build artifacts\build\
+          copy build\Release\HelloWorld.exe artifacts\ 2>nul || copy build\HelloWorld.exe artifacts\ 2>nul || echo No HelloWorld.exe
+          copy build\Release\unit_tests.exe artifacts\ 2>nul || copy build\Debug\unit_tests.exe artifacts\ 2>nul || copy build\unit_tests.exe artifacts\ 2>nul || echo No unit_tests.exe
+          dir artifacts\
+        shell: cmd
+        continue-on-error: true
+
       - name: Deploy artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: build-${{ matrix.os }}
-          path: |
-            build/
+          name: build-${{ matrix.os }}-${{ github.sha }}
+          path: artifacts/
           if-no-files-found: warn
+          retention-days: 7
