@@ -1,0 +1,49 @@
+name: Cross-Platform Build & Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop, master, main]
+  pull_request:
+    branches: [develop, master, main]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  cross-platform-build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Setup CMake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.25'
+
+      - name: 🏗️ Configure project
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      - name: 🚀 Build project
+        run: |
+          cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 2
+
+      - name: ✅ Execute test suite
+        run: |
+          cd build
+          ctest --build-config ${{ env.BUILD_TYPE }} --output-on-failure --verbose
+
+      - name: 📦 Package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.os }}-${{ github.sha }}
+          path: build/
+          retention-days: 7
